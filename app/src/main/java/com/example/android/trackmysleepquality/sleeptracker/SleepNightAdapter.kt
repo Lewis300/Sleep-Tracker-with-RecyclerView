@@ -17,24 +17,18 @@
 package com.example.android.trackmysleepquality.sleeptracker
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.android.trackmysleepquality.R
-import com.example.android.trackmysleepquality.convertDurationToFormatted
-import com.example.android.trackmysleepquality.convertNumericQualityToString
 import com.example.android.trackmysleepquality.database.SleepNight
+import com.example.android.trackmysleepquality.databinding.ListItemSleepNightBinding
 
-class SleepNightAdapter: ListAdapter<SleepNight, SleepNightAdapter.ViewHolder>(SleepNightDiffCallback())
+class SleepNightAdapter(val clickListener: SleepNightListener): ListAdapter<SleepNight, SleepNightAdapter.ViewHolder>(SleepNightDiffCallback())
 {
     override fun onBindViewHolder(holder: ViewHolder, position: Int)
     {
-        val item = getItem(position)
-        holder.bind(item)
+        holder.bind(getItem(position)!!, clickListener)
     }
 
 
@@ -43,39 +37,27 @@ class SleepNightAdapter: ListAdapter<SleepNight, SleepNightAdapter.ViewHolder>(S
         return ViewHolder.from(parent)
     }
 
-    class ViewHolder private constructor(itemView: View): RecyclerView.ViewHolder(itemView)
+    class ViewHolder private constructor(val binding: ListItemSleepNightBinding): RecyclerView.ViewHolder(binding.root)
     {
-        val sleepLength: TextView = itemView.findViewById(R.id.sleep_length)
-        val quality: TextView = itemView.findViewById(R.id.quality_string)
-        val qualityImage: ImageView = itemView.findViewById(R.id.quality_image)
-
-        fun bind(item: SleepNight)
+        fun bind(item: SleepNight, clickListener: SleepNightListener)
         {
-            val res = itemView.context.resources
-            sleepLength.text = convertDurationToFormatted(item.startTimeMilli, item.endTimeMilli, res)
-            quality.text = convertNumericQualityToString(item.sleepQuality, res)
-
-            qualityImage.setImageResource(when (item.sleepQuality) {
-                0 -> R.drawable.ic_sleep_0
-                1 -> R.drawable.ic_sleep_1
-                2 -> R.drawable.ic_sleep_2
-                3 -> R.drawable.ic_sleep_3
-                4 -> R.drawable.ic_sleep_4
-                5 -> R.drawable.ic_sleep_5
-                else -> R.drawable.ic_sleep_active
-            })
+            binding.sleep = item
+            binding.clickListener = clickListener
+            binding.executePendingBindings()
         }
 
+        // Use this to inflate layout, no clue why we need a companion object
         companion object {
         fun from(parent: ViewGroup): ViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.list_item_sleep_night, parent, false)
-            return ViewHolder(view)
+             val layoutInflater = LayoutInflater.from(parent.context)
+             val binding = ListItemSleepNightBinding.inflate(layoutInflater, parent, false)
+             return ViewHolder(binding)
             }
         }
     }
 }
 
+// Had to make this to override some important equality-like functions
 class SleepNightDiffCallback : DiffUtil.ItemCallback<SleepNight>()
 {
     override fun areItemsTheSame(oldItem: SleepNight, newItem: SleepNight): Boolean
@@ -87,4 +69,28 @@ class SleepNightDiffCallback : DiffUtil.ItemCallback<SleepNight>()
     {
         return oldItem == newItem
     }
+}
+
+// If youre reading this I want to know exactly what this class does.
+class SleepNightListener(val clickListener: (sleepId: Long) -> Unit) // what is Unit? What does the -> mean in this case?
+{
+    // He starts talking about lambda expressions here, don't know what that is
+    // I see, the lambda expression is in the class header, it returns nothing.
+    // So, how is clickListener set to a value?
+    fun onClick(night: SleepNight) = clickListener(night.nightId)
+}
+
+sealed class DataItem
+{
+    data class SleepNightItem(val sleepNight: SleepNight): DataItem()
+    {
+     override val id = sleepNight.nightId
+    }
+
+    object Header: DataItem()
+    {
+     override val id = Long.MIN_VALUE
+    }
+
+    abstract val id: Long
 }

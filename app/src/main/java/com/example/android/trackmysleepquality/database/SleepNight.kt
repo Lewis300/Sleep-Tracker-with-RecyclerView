@@ -21,7 +21,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "daily_sleep_quality_table")
-data class SleepNight(
+data class SleepNight( //What is the purpose of a data class
         @PrimaryKey(autoGenerate = true)
         var nightId: Long = 0L,
 
